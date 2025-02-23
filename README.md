@@ -24,4 +24,4 @@ va boshqa kop qulayliklari bor
 
 ---
 
-shu podojectning admin paneli 
+shu projectning admin paneli 
