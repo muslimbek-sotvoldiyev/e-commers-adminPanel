@@ -9,9 +9,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
 
@@ -19,7 +16,11 @@ const data = {
   navMain: [
     {
       title: "Product",
-      url: "#",
+      url: "product",
+    },
+    {
+      title: "Category",
+      url: "category",
     },
   ],
 };
