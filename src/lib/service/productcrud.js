@@ -7,7 +7,7 @@ const isFormData = (body) => {
 const productcrudAPi = createApi({
   reducerPath: "productcrudAPi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:4000/",
+    baseUrl: "https://e-commers-bakend-production.up.railway.app/",
     prepareHeaders: (headers, { getState, endpoint }) => {
       const token = localStorage.getItem("accessToken");
 
@@ -19,7 +19,6 @@ const productcrudAPi = createApi({
     },
   }),
   endpoints: (builder) => ({
-    // Products
     getProducts: builder.query({
       query: () => `products`,
     }),
