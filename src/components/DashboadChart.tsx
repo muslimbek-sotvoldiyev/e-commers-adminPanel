@@ -101,13 +101,13 @@ const SalesDashboard = () => {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (selectedRange === "today") {
-      setData(filterDataByHours(staticData.today, startHour, endHour));
-    } else {
-      setData(staticData[selectedRange] || []);
-    }
-  }, [selectedRange, startHour, endHour]);
+  // useEffect(() => {
+  //   if (selectedRange === "today") {
+  //     setData(filterDataByHours(staticData.today, startHour, endHour));
+  //   } else {
+  //     setData(staticData[selectedRange] || []);
+  //   }
+  // }, [selectedRange, startHour, endHour]);
 
   // Simplified metrics
   const metrics = [
@@ -115,11 +115,11 @@ const SalesDashboard = () => {
     { value: "mijozlar", label: "Mijozlar", color: "#F59E0B" },
   ];
 
-  const formatNumber = (num) => {
+  const formatNumber = (num: any) => {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
-  const formatValue = (value) => {
+  const formatValue = (value: any) => {
     if (selectedMetric === "mijozlar") return formatNumber(value);
     if (value >= 1000000000)
       return `${formatNumber(Math.floor(value / 1000000000))}.${Math.floor(
@@ -137,13 +137,13 @@ const SalesDashboard = () => {
       area: AreaChart,
       bar: BarChart,
       line: LineChart,
-    }[chartType];
+    }[chartType] as typeof AreaChart | typeof BarChart | typeof LineChart;
 
     const DataComponent = {
       area: Area,
       bar: Bar,
       line: Line,
-    }[chartType];
+    }[chartType] as typeof Area | typeof Bar | typeof Line;
 
     const currentMetric = metrics.find((m) => m.value === selectedMetric);
     const isDark = theme === "dark";

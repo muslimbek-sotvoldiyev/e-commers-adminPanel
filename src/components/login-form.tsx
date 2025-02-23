@@ -82,7 +82,7 @@ export function LoginForm({
               </div>
               {error && (
                 <p className="text-red-500 text-sm">
-                  {error.data?.message || "Login failed. Please try again."}
+                  {'data' in error ? (error.data as any)?.message : "Login failed. Please try again."}
                 </p>
               )}
               <Button type="submit" className="w-full" disabled={isLoading}>
