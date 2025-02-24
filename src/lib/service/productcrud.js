@@ -1,6 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-// https://e-commers-bakend-production.up.railway.app/
-
+// http://localhost:4000/
 const isFormData = (body) => {
   return body instanceof FormData;
 };
@@ -8,7 +7,7 @@ const isFormData = (body) => {
 const productcrudAPi = createApi({
   reducerPath: "productcrudAPi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:4000/",
+    baseUrl: "https://e-commers-bakend-production.up.railway.app/",
     prepareHeaders: (headers, { getState, endpoint }) => {
       const token = localStorage.getItem("accessToken");
 
