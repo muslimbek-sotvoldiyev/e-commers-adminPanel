@@ -155,7 +155,6 @@ export function ProductManagement() {
 
       {selectedProduct && (
         <EditProductDialog
-          refetch={refetch}
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
           product={selectedProduct}
