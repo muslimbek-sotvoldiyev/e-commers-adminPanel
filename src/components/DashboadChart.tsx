@@ -11,7 +11,13 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { Clock, BarChart2, TrendingUp, FileText } from "lucide-react";
+import {
+  Clock,
+  BarChart2,
+  TrendingUp,
+  FileText,
+  LucideIcon,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -23,14 +29,42 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTheme } from "next-themes";
 
-// Hours data remains the same
-const hours = Array.from({ length: 24 }, (_, i) => ({
+interface Hour {
+  value: number;
+  label: string;
+}
+
+interface DataPoint {
+  timeLabel: string;
+  savdo: number;
+  mijozlar: number;
+}
+
+interface StaticData {
+  today: DataPoint[];
+  weekly: DataPoint[];
+  monthly: DataPoint[];
+  yearly: DataPoint[];
+}
+
+interface Metric {
+  value: "savdo" | "mijozlar";
+  label: string;
+  color: string;
+}
+
+interface ChartType {
+  id: "area" | "bar" | "line";
+  icon: LucideIcon;
+  label: string;
+}
+
+const hours: Hour[] = Array.from({ length: 24 }, (_, i) => ({
   value: i,
   label: `${String(i).padStart(2, "0")}:00`,
 }));
 
-// Simplified static data - removed kirim, chiqim, chegirma
-const staticData = {
+const staticData: StaticData = {
   today: Array.from({ length: 24 }, (_, i) => ({
     timeLabel: `${String(i).padStart(2, "0")}:00`,
     savdo: Math.floor(65000 + Math.random() * 550000),
@@ -72,7 +106,11 @@ const staticData = {
   ],
 };
 
-const filterDataByHours = (data: any, startHour: any, endHour: any) => {
+const filterDataByHours = (
+  data: DataPoint[],
+  startHour: number,
+  endHour: number
+): DataPoint[] => {
   if (!Array.isArray(data)) return [];
   return data.filter((item) => {
     if (!item.timeLabel.includes(":")) return true;
@@ -81,45 +119,57 @@ const filterDataByHours = (data: any, startHour: any, endHour: any) => {
   });
 };
 
-const chartTypes = [
+const chartTypes: ChartType[] = [
   { id: "area", icon: TrendingUp, label: "Chiziqli" },
   { id: "bar", icon: BarChart2, label: "Ustunli" },
   { id: "line", icon: FileText, label: "Grafik" },
 ];
 
-const SalesDashboard = () => {
+const SalesDashboard: React.FC = () => {
   const { theme } = useTheme();
-  const [selectedRange, setSelectedRange] = useState("today");
-  const [selectedMetric, setSelectedMetric] = useState("savdo");
-  const [startHour, setStartHour] = useState(0);
-  const [endHour, setEndHour] = useState(23);
-  const [data, setData] = useState([]);
-  const [chartType, setChartType] = useState("area");
-  const [mounted, setMounted] = useState(false);
+  const [selectedRange, setSelectedRange] = useState<
+    "today" | "weekly" | "monthly" | "yearly"
+  >("today");
+  const [selectedMetric, setSelectedMetric] = useState<"savdo" | "mijozlar">(
+    "savdo"
+  );
+  const [startHour, setStartHour] = useState<number>(0);
+  const [endHour, setEndHour] = useState<number>(23);
+  const [data, setData] = useState<DataPoint[]>([]);
+  const [chartType, setChartType] = useState<"area" | "bar" | "line">("area");
+  const [mounted, setMounted] = useState<boolean>(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // useEffect(() => {
-  //   if (selectedRange === "today") {
-  //     setData(filterDataByHours(staticData.today, startHour, endHour));
-  //   } else {
-  //     setData(staticData[selectedRange] || []);
-  //   }
-  // }, [selectedRange, startHour, endHour]);
+  useEffect(() => {
+    const updateData = () => {
+      if (selectedRange === "today") {
+        const filteredData = filterDataByHours(
+          staticData.today,
+          startHour,
+          endHour
+        );
+        setData(filteredData);
+      } else {
+        setData(staticData[selectedRange] || []);
+      }
+    };
 
-  // Simplified metrics
-  const metrics = [
+    updateData();
+  }, [selectedRange, startHour, endHour]);
+
+  const metrics: Metric[] = [
     { value: "savdo", label: "Savdo", color: "#10B981" },
     { value: "mijozlar", label: "Mijozlar", color: "#F59E0B" },
   ];
 
-  const formatNumber = (num: any) => {
+  const formatNumber = (num: number): string => {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
-  const formatValue = (value: any) => {
+  const formatValue = (value: number): string => {
     if (selectedMetric === "mijozlar") return formatNumber(value);
     if (value >= 1000000000)
       return `${formatNumber(Math.floor(value / 1000000000))}.${Math.floor(
@@ -137,13 +187,13 @@ const SalesDashboard = () => {
       area: AreaChart,
       bar: BarChart,
       line: LineChart,
-    }[chartType] as typeof AreaChart | typeof BarChart | typeof LineChart;
+    }[chartType];
 
     const DataComponent = {
       area: Area,
       bar: Bar,
       line: Line,
-    }[chartType] as typeof Area | typeof Bar | typeof Line;
+    }[chartType];
 
     const currentMetric = metrics.find((m) => m.value === selectedMetric);
     const isDark = theme === "dark";
@@ -193,7 +243,7 @@ const SalesDashboard = () => {
             boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
           }}
           labelStyle={{ color: isDark ? "#999" : "#666" }}
-          formatter={(value) => [
+          formatter={(value: number) => [
             `${formatValue(value)} ${
               selectedMetric === "mijozlar" ? "ta" : "so'm"
             }`,
@@ -230,7 +280,7 @@ const SalesDashboard = () => {
           />
           <Select
             value={startHour.toString()}
-            onValueChange={(v) => setStartHour(Number(v))}
+            onValueChange={(v: string) => setStartHour(Number(v))}
           >
             <SelectTrigger className="w-24 border-none bg-transparent">
               <SelectValue />
@@ -246,7 +296,7 @@ const SalesDashboard = () => {
           <span className={isDark ? "text-gray-400" : "text-gray-500"}>-</span>
           <Select
             value={endHour.toString()}
-            onValueChange={(v) => setEndHour(Number(v))}
+            onValueChange={(v: string) => setEndHour(Number(v))}
           >
             <SelectTrigger className="w-24 border-none bg-transparent">
               <SelectValue />
@@ -310,7 +360,9 @@ const SalesDashboard = () => {
       <div className="mb-6">
         <Tabs
           value={selectedRange}
-          onValueChange={setSelectedRange}
+          onValueChange={(value: string) =>
+            setSelectedRange(value as "today" | "weekly" | "monthly" | "yearly")
+          }
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-4">

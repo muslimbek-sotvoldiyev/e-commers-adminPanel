@@ -3,11 +3,11 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 const isFormData = (body) => {
   return body instanceof FormData;
 };
-
+// https://e-commers-bakend-production.up.railway.app/
 const api = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
-    baseUrl: "https://e-commers-bakend-production.up.railway.app/",
+    baseUrl: "http://localhost:4000/",
     prepareHeaders: (headers, { getState, endpoint }) => {
       const token = localStorage.getItem("accessToken");
 
@@ -86,13 +86,6 @@ const api = createApi({
       query: () => `users/mee`,
       providesTags: ["Users"],
     }),
-    updateMe: builder.mutation({
-      query: (userData) => ({
-        url: "users",
-        method: "PATCH",
-        body: userData,
-      }),
-    }),
 
     getUsers: builder.query({
       query: () => "users",
@@ -101,7 +94,7 @@ const api = createApi({
     updateUser: builder.mutation({
       query: (user) => ({
         url: `users/${user.id}`,
-        method: "PUT",
+        method: "PATCH",
         body: user,
       }),
     }),
@@ -141,7 +134,6 @@ export const {
   useDeleteProductMutation,
 
   useGetMeQuery,
-  useUpdateMeMutation,
 
   useGetUsersQuery,
   useUpdateUserMutation,

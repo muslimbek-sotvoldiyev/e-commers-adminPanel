@@ -1,9 +1,8 @@
 "use client";
 
-import type React from "react";
 import { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
-import { Toaster, toast } from "sonner";
+import { Pencil, Trash2, FolderPlus } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   useGetCategoriesQuery,
@@ -20,6 +19,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import useAuth from "@/hooks/auth";
 
 interface Category {
   id: number;
@@ -28,7 +36,8 @@ interface Category {
   updatedAt: string;
 }
 
-const CategoryManagement: React.FC = () => {
+export default function CategoryManagement() {
+  useAuth();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -48,128 +57,138 @@ const CategoryManagement: React.FC = () => {
 
   const handleEdit = async (category: Category) => {
     try {
-      await updateCategory({ id: category.id, name: category.name }).unwrap();
-      toast.success(`${category.name} tahrirlandi`);
+      await toast.promise(
+        updateCategory({ id: category.id, name: category.name }).unwrap(),
+        {
+          loading: "Tahrirlanmoqda...",
+          success: `${category.name} tahrirlandi`,
+          error: "Tahrirlashda xatolik yuz berdi",
+        }
+      );
       setEditModalOpen(false);
       refetch();
     } catch (error) {
-      toast.error("Tahrirlashda xatolik yuz berdi");
+      console.error("Edit error:", error);
     }
   };
 
   const handleDelete = async (id: number) => {
     try {
-      await deleteCategory(id).unwrap();
-      toast.success(`Kategoriya o'chirildi`);
+      await toast.promise(deleteCategory(id).unwrap(), {
+        loading: "O'chirilmoqda...",
+        success: "Kategoriya o'chirildi",
+        error: "O'chirishda xatolik yuz berdi",
+      });
       setDeleteModalOpen(false);
       refetch();
     } catch (error) {
-      toast.error("O'chirishda xatolik yuz berdi");
+      console.error("Delete error:", error);
     }
   };
 
   const handleAdd = async () => {
     try {
-      await createCategory({ name: newCategoryName }).unwrap();
-      toast.success(`Yangi kategoriya qo'shildi`);
+      await toast.promise(createCategory({ name: newCategoryName }).unwrap(), {
+        loading: "Qo'shilmoqda...",
+        success: "Yangi kategoriya qo'shildi",
+        error: "Qo'shishda xatolik yuz berdi",
+      });
       setAddModalOpen(false);
       setNewCategoryName("");
       refetch();
     } catch (error) {
-      toast.error("Qo'shishda xatolik yuz berdi");
+      console.error("Add error:", error);
     }
   };
 
-  const handleEditClick = (category: Category) => {
-    setItemToEdit(category);
-    setEditModalOpen(true);
-  };
-
-  const handleDeleteClick = (item: Category) => {
-    setItemToDelete(item);
-    setDeleteModalOpen(true);
-  };
-
-  if (isLoading) return <div>Yuklanmoqda...</div>;
-  if (isError) return <div>Xatolik yuz berdi</div>;
+  if (isLoading)
+    return <div className="flex justify-center pt-12">Yuklanmoqda...</div>;
+  if (isError)
+    return (
+      <div className="flex justify-center pt-12 text-destructive">
+        Xatolik yuz berdi
+      </div>
+    );
 
   return (
-    <div className="p-4 min-h-screen">
-      <div className="p-4 border-b flex justify-between items-center">
-        <h2 className="text-xl font-bold">Category Boshqaruvi</h2>
-        <Button
-          className="px-6 py-4 rounded-lg shadow-md transition"
-          onClick={() => setAddModalOpen(true)}
-        >
-          Qo'shish
+    <div className="p-4 space-y-4 min-h-screen">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold">Kategoriyalar</h2>
+        <Button onClick={() => setAddModalOpen(true)}>
+          <FolderPlus className="mr-2 h-4 w-4" />
+          Yangi kategoriya
         </Button>
       </div>
 
-      <Toaster position="top-right" />
-
-      <div className="rounded-lg shadow-sm overflow-hidden mt-4">
-        <div className="overflow-x-auto">
-          {categories && categories.length > 0 ? (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="p-3 text-left text-sm font-semibold">ID</th>
-                  <th className="p-3 text-left text-sm font-semibold">Nomi</th>
-                  <th className="p-3 text-left text-sm font-semibold">Sana</th>
-                  <th className="w-20 p-3 text-center text-sm font-semibold">
-                    Harakatlar
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {categories.map((category: any) => (
-                  <tr
-                    key={category.id}
-                    className="border-b transition-colors hover:bg-gray-300 dark:hover:bg-gray-800"
-                  >
-                    <td className="p-3 text-sm">{category.id}</td>
-                    <td className="p-3 text-sm font-medium">{category.name}</td>
-                    <td className="p-3 text-sm">
-                      {new Date(category.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="p-3">
-                      <div className="flex justify-center gap-2">
-                        <button
-                          onClick={() => handleEditClick(category)}
-                          className="p-1.5 hover:bg-blue-200 rounded-md hover:text-blue-600 transition-colors"
-                        >
-                          <Pencil size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(category)}
-                          className="p-1.5 hover:bg-red-200 rounded-md hover:text-red-600 transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="p-6 text-center">
-              <p className="text-lg font-medium">Ma'lumot yo'q</p>
-              <p className="text-sm text-gray-500 mt-1">
-                Hozircha hech qanday kategoriya qo'shilmagan
-              </p>
-            </div>
-          )}
-        </div>
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Nomi</TableHead>
+              <TableHead>Sana</TableHead>
+              <TableHead className="text-right">Amallar</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {categories?.length ? (
+              categories.map((category: Category) => (
+                <TableRow key={category.id}>
+                  <TableCell>{category.id}</TableCell>
+                  <TableCell>{category.name}</TableCell>
+                  <TableCell>
+                    {new Date(category.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setItemToEdit(category);
+                          setEditModalOpen(true);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive"
+                        onClick={() => {
+                          setItemToDelete(category);
+                          setDeleteModalOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center">
+                  <div className="py-6">
+                    <p className="text-lg font-medium">Ma'lumot yo'q</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Hozircha hech qanday kategoriya qo'shilmagan
+                    </p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
 
-      {/* O'chirish modali */}
+      {/* Delete Modal */}
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>O'chirish</DialogTitle>
           </DialogHeader>
-          <p className="mb-4 text-sm">
+          <p className="text-sm text-muted-foreground">
             {itemToDelete?.name} kategoriyasini o'chirmoqchimisiz?
           </p>
           <DialogFooter>
@@ -186,17 +205,15 @@ const CategoryManagement: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Tahrirlash modali */}
+      {/* Edit Modal */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Tahrirlash</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Nomi
-              </Label>
+            <div className="grid gap-2">
+              <Label htmlFor="name">Nomi</Label>
               <Input
                 id="name"
                 value={itemToEdit?.name || ""}
@@ -205,7 +222,6 @@ const CategoryManagement: React.FC = () => {
                     prev ? { ...prev, name: e.target.value } : null
                   )
                 }
-                className="col-span-3"
               />
             </div>
           </div>
@@ -220,22 +236,19 @@ const CategoryManagement: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Qo'shish modali */}
+      {/* Add Modal */}
       <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Yangi kategoriya qo'shish</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="newName" className="text-right">
-                Nomi
-              </Label>
+            <div className="grid gap-2">
+              <Label htmlFor="newName">Nomi</Label>
               <Input
                 id="newName"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
-                className="col-span-3"
               />
             </div>
           </div>
@@ -249,6 +262,4 @@ const CategoryManagement: React.FC = () => {
       </Dialog>
     </div>
   );
-};
-
-export default CategoryManagement;
+}

@@ -1,5 +1,8 @@
 "use client";
-import React, { useState } from "react";
+
+import { useState } from "react";
+import { Pencil, Trash2, UserPlus } from "lucide-react";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -9,204 +12,256 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useGetUsersQuery, useDeleteUserMutation } from "@/lib/service/api";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import api, {
+  useGetUsersQuery,
+  useUpdateUserMutation,
+  useDeleteUserMutation,
+} from "@/lib/service/api";
 import { useRegisterMutation } from "@/lib/service/authApi";
+import { UserForm } from "@/components/user-form";
+import { DeleteUser } from "@/components/deleteUser";
+import { useDispatch } from "react-redux";
+import useAuth from "@/hooks/auth";
+
+export interface User {
+  id: number;
+  first_name: string;
+  second_name: string;
+  email: string;
+  role: "customer" | "admin";
+  photo?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function UsersPage() {
-  const { data: users, isLoading, error, refetch} = useGetUsersQuery([]);
-  const [Register] = useRegisterMutation();
-  const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
+  useAuth();
+  const dispatch = useDispatch();
+  const { data: users, isLoading, error } = useGetUsersQuery({});
+  const [register] = useRegisterMutation();
+  const [updateUser] = useUpdateUserMutation();
+  const [deleteUser] = useDeleteUserMutation();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newUserData, setNewUserData] = useState({
-    first_name: "",
-    second_name: "",
-    email: "",
-    password: "",
-    role: "user",
-    photo: null as File | null,
-  });
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setNewUserData((prev) => ({ ...prev, photo: file }));
-    }
-  };
-
-  const handleAddUser = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddUser = async (formData: FormData) => {
     try {
-      const formData = new FormData();
-      formData.append("first_name", newUserData.first_name);
-      formData.append("second_name", newUserData.second_name);
-      formData.append("email", newUserData.email);
-      formData.append("password", newUserData.password);
-      formData.append("role", newUserData.role);
-
-      if (newUserData.photo) {
-        formData.append("photo", newUserData.photo);
+      for (const [key, value] of formData.entries()) {
+        console.log(`${key}: ${value}`);
       }
 
-      await Register(formData).unwrap();
+      const result = await register(formData).unwrap();
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      toast.success("Foydalanuvchi muvaffaqiyatli qo'shildi");
+      dispatch(api.util.resetApiState());
       setIsAddModalOpen(false);
-      setNewUserData({
-        first_name: "",
-        second_name: "",
-        email: "",
-        password: "",
-        role: "user",
-        photo: null,
-      });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to create user:", err);
+      toast.error(
+        `Xatolik yuz berdi: ${
+          err.data?.message || err.message || "Noma'lum xato"
+        }`
+      );
     }
   };
 
-  const handleDeleteUser = async (id: number) => {
+  const handleEditUser = async (formData: FormData) => {
+    if (!selectedUser) return;
+
     try {
-      await deleteUser(id).unwrap();
+      console.log("Updating user:", selectedUser.id);
+      for (const [key, value] of formData.entries()) {
+        console.log(`${key}: ${value}`);
+      }
+
+      await toast.promise(
+        updateUser({
+          id: selectedUser.id,
+          formData,
+        }).unwrap(),
+        {
+          loading: "Foydalanuvchi tahrirlanmoqda...",
+          success: "Foydalanuvchi muvaffaqiyatli tahrirlandi",
+          error: (err) => {
+            console.error("Update error:", err);
+            return (
+              "Tahrirlashda xatolik yuz berdi: " +
+              (err.data?.message || "Noma'lum xato")
+            );
+          },
+        }
+      );
+      setIsEditModalOpen(false);
+      setSelectedUser(null);
+    } catch (err) {
+      console.error("Failed to update user:", err);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+
+    try {
+      await toast.promise(deleteUser(selectedUser.id).unwrap(), {
+        loading: "O'chirilmoqda...",
+        success: () => {
+          dispatch(api.util.resetApiState());
+          return "Foydalanuvchi o'chirildi";
+        },
+        error: (err) => {
+          console.error("Delete error:", err);
+          return (
+            "O'chirishda xatolik yuz berdi: " +
+            (err.data?.message || "Noma'lum xato")
+          );
+        },
+      });
+      setIsDeleteModalOpen(false);
+      setSelectedUser(null);
     } catch (err) {
       console.error("Failed to delete user:", err);
     }
   };
 
-  if (isLoading) return <div className="text-center">Loading...</div>;
+  if (isLoading)
+    return <div className="flex justify-center pt-12">Yuklanmoqda...</div>;
   if (error)
-    return <div className="text-center text-red-500">Error loading users</div>;
+    return (
+      <div className="flex justify-center pt-12 text-destructive">
+        Xatolik yuz berdi
+      </div>
+    );
 
   return (
-    <div className="container mx-auto p-4 min-h-screen">
-      <Button
-        onClick={() => setIsAddModalOpen(true)}
-        className="mb-4 bg-green-600 hover:bg-green-700"
-      >
-        Add New User
-      </Button>
+    <div className="p-4 space-y-4 min-h-screen">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold">Foydalanuvchilar</h2>
+        <Button onClick={() => setIsAddModalOpen(true)}>
+          <UserPlus className="mr-2 h-4 w-4" />
+          Yangi foydalanuvchi
+        </Button>
+      </div>
 
-      {/* Add User Modal */}
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Rasm</TableHead>
+              <TableHead>Ism</TableHead>
+              <TableHead>Familiya</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead className="text-right">Amallar</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users?.length ? (
+              users.map((user: any) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <Avatar>
+                      <AvatarImage src={user.photo} />
+                      <AvatarFallback>
+                        {user.first_name.charAt(0)}
+                        {user.second_name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </TableCell>
+                  <TableCell>{user.first_name}</TableCell>
+                  <TableCell>{user.second_name}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.role}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setIsEditModalOpen(true);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive"
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setIsDeleteModalOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center">
+                  <div className="py-6">
+                    <p className="text-lg font-medium">Ma'lumot yo'q</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Hozircha hech qanday foydalanuvchi qo'shilmagan
+                    </p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Add New User</DialogTitle>
+            <DialogTitle>Yangi foydalanuvchi qo'shish</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleAddUser} className="space-y-4">
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="first_name">First Name</Label>
-                <Input
-                  id="first_name"
-                  value={newUserData.first_name}
-                  onChange={(e) =>
-                    setNewUserData((prev) => ({
-                      ...prev,
-                      first_name: e.target.value,
-                    }))
-                  }
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="second_name">Second Name</Label>
-                <Input
-                  id="second_name"
-                  value={newUserData.second_name}
-                  onChange={(e) =>
-                    setNewUserData((prev) => ({
-                      ...prev,
-                      second_name: e.target.value,
-                    }))
-                  }
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newUserData.email}
-                  onChange={(e) =>
-                    setNewUserData((prev) => ({
-                      ...prev,
-                      email: e.target.value,
-                    }))
-                  }
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={newUserData.password}
-                  onChange={(e) =>
-                    setNewUserData((prev) => ({
-                      ...prev,
-                      password: e.target.value,
-                    }))
-                  }
-                  required
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit">Add User</Button>
-            </DialogFooter>
-          </form>
+          <UserForm onSubmit={handleAddUser} submitLabel="Qo'shish" />
         </DialogContent>
       </Dialog>
 
-      {/* Users Table */}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>First Name</TableHead>
-            <TableHead>Second Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users?.map((user: any) => (
-            <TableRow key={user.id}>
-              <TableCell>{user.id}</TableCell>
-              <TableCell>{user.first_name}</TableCell>
-              <TableCell>{user.second_name}</TableCell>
-              <TableCell>{user.email}</TableCell>
-              <TableCell>{user.role}</TableCell>
-              <TableCell>
-                <Button
-                  variant="destructive"
-                  onClick={() => handleDeleteUser(user.id)}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? "Deleting..." : "Delete"}
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Foydalanuvchini tahrirlash</DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <UserForm
+              initialData={{
+                first_name: selectedUser.first_name,
+                second_name: selectedUser.second_name,
+                email: selectedUser.email,
+                role: selectedUser.role,
+              }}
+              onSubmit={handleEditUser}
+              submitLabel="Saqlash"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <DeleteUser
+        open={isDeleteModalOpen}
+        onOpenChange={setIsDeleteModalOpen}
+        onConfirm={handleDeleteUser}
+        userName={`${selectedUser?.first_name} ${selectedUser?.second_name}`}
+      />
     </div>
   );
 }
