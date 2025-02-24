@@ -2,9 +2,13 @@
 import { useEffect, useState } from "react";
 import AppBar from "@/components/siteBar/page";
 
-export default function AuthCheck({ children }) {
-  const [token, setToken] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+type AuthCheckProps = {
+  children: React.ReactNode;
+};
+
+export default function AuthCheck({ children }: AuthCheckProps) {
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const storedToken = localStorage.getItem("accessToken");

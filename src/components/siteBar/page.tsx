@@ -19,6 +19,7 @@ import { useMemo } from "react";
 import { ThemeButton } from "../theame-button";
 
 export default function AppBar({ children }: { children: React.ReactNode }) {
+  // window.location.reload
   const pathname = usePathname();
 
   const breadcrumbs = useMemo(() => {
